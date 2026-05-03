@@ -894,8 +894,14 @@ const DESKS_CLASSROOM = [
   // Rang 3 (y=GND-240) — décalés
   ...[...Array(15)].map((_,i)=>({x:350+i*210, y:GND-240, w:90,  h:14})),
 ];
+// Craies placées sur les pupitres rang 2 (y=GND-160) et rang 3 (y=GND-240)
+// Rang 2 : x=240+i*190 centre+50   |   Rang 3 : x=350+i*210 centre+45
 const CHALK_CLASSROOM = [
-  {x:420}, {x:1050}, {x:1680}, {x:2350}, {x:2900}
+  {x:670,  y:GND-160},  // rang 2, zone début
+  {x:1025, y:GND-240},  // rang 3, zone milieu-début (plus haut = plus dur)
+  {x:2000, y:GND-160},  // rang 2, zone milieu
+  {x:2285, y:GND-240},  // rang 3, zone milieu-fin
+  {x:2760, y:GND-160},  // rang 2, zone fin
 ];
 const CHAIR_DESKS_CLASSROOM = [350, 640, 1050, 1450, 1840, 2250, 2700, 3100];
 // Interval pour les insultes périodiques de PHYSIK
@@ -1031,8 +1037,8 @@ function resolveKvPlat(p){
     // Plateforme flottante : atterrir uniquement en tombant, depuis le dessus
     // Tolérance 20px pour éviter le tunneling à haute vitesse
     if(KV.vy>=0&&kfeet>=p.y&&kfeet<=p.y+20){
-      // Pupitres destructibles (niveau 1) — chute rapide
-      if(G.level===1 && !p.ground && !p.destroyed && KV.vy>=6){
+      // Pupitres destructibles (niveau 1) — ground pound : touche BAS + chute rapide
+      if(G.level===1 && !p.ground && !p.destroyed && CTRL.down && KV.vy>=9){
         p.destroyed=true;
         spawnBurst(KV.x+16, p.y, '#8B4513', 16);
         spawnFT('PUPITRE CASSÉ !', KV.x+16, p.y-20, '#c08040', true);
@@ -4744,6 +4750,7 @@ function drawBG_Classroom(){
   // Plateformes (pupitres)
   for(const p of currentPlats){
     if(p.ground) continue;
+    if(p.destroyed) continue; // pupitre cassé = invisible
     const px=~~wx(p.x);
     if(px>W+p.w||px<-p.w) continue;
     r(px,p.y,p.w,p.h,'#8B6914');
@@ -5994,7 +6001,7 @@ function startClassroom(){
   killFlash=null; stopTokTokMusic();
   cam.x=0; cam.tx=0;
   // Craie et chaises
-  chalkItems=CHALK_CLASSROOM.map(c=>({on:true, x:c.x, y:GND-14, glowT:0}));
+  chalkItems=CHALK_CLASSROOM.map(c=>({on:true, x:c.x, y:(c.y!=null?c.y:GND-14), glowT:0}));
   chairItems=CHAIR_DESKS_CLASSROOM.map(x=>({on:true, x, y:GND-94, collected:false}));
   // Afficher intro
   spawnFT('SALLE DE CLASSE', W/2+cam.x, 60, C.YELLOW, true);
