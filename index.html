@@ -149,6 +149,17 @@ const sfx={
     tone(1320, .22, 'sine', .25, .16);
   },
   punch:   ()=>{ noise(.04,180,.5); tone(90,.06,'sawtooth',.4); },
+  chalk:   ()=>{
+    // Craie qui grince sur le tableau — stries hautes fréquences + grattages
+    for(let i=0;i<6;i++){
+      const t=i*0.06, fc=3200+Math.random()*1800;
+      noise(.04+Math.random()*.03, fc, .18+Math.random()*.12);
+    }
+    // Petit grincement aigu (la note caractéristique)
+    tone(2800,.04,'sawtooth',.15,.02);
+    tone(3400,.03,'sawtooth',.10,.07);
+    tone(2200,.05,'sawtooth',.12,.12);
+  },
   tokTokJingle: ()=>{
     // Fanfare épique d'influenceur
     noise(.12, 70, .8);                                      // gros kick
@@ -343,7 +354,7 @@ const PROF_PHRASES=[
   'Retournez en classe immédiatement !',
   "C'est quoi ce bazar ?!",
   'Je vais appeler vos parents !',
-  'Vous êtes consignés !',
+  'Vous êtes collés, vous passerez sous mon bureau !',
   "J'en ai assez !",
   'Rendez-moi ce téléphone tout de suite !',
   'Au bureau du proviseur, maintenant !',
@@ -1784,6 +1795,7 @@ function drawChairItems(){
 
 function triggerChalkDraw(){
   _chalkDrawing={timer:6.0, frame:0};
+  sfx.chalk(); // bruit de craie sur le tableau
   // +2000 points + flash KABOUM
   G.killScore += 2000;
   G.score = G.scoreBonus + G.killScore + ~~(G.maxX/8);
