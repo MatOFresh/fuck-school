@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="apple-mobile-web-app-title" content="Fuck School">
 <title>FUCK SCHOOL 🎮</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -875,10 +878,7 @@ function hurtKevin(srcX, killerType){
   if(KV.tokTok>0) return; // invincible TokTok
   if(KV.invincT>0||KV.action==='dead') return;
   KV.hp--;
-  // Perte d'arme sur hit
-  if(G.level===3&&KV.hasBrosse){ KV.hasBrosse=false; spawnFT('💩 T\'AS PERDU TA BROSSE !',KV.x,KV.y-50,'#a06040',true); }
-  else if(KV.hasBoulette){ KV.hasBoulette=false; kvBoulettes=[]; spawnFT('📄 TES BOULETTES !!!',KV.x,KV.y-50,C.WHITE,true); }
-  else if(KV.hasBaguette){ KV.hasBaguette=false; spawnFT('🥖 TA BAGUETTE !!!',KV.x,KV.y-50,C.BGUE,true); }
+  // Arme conservée même sur hit (plus fun, moins frustrant)
   KV.invincT=90; // 1.5s invincible
   KV.action='hurt';
   KV.vx = (KV.x>srcX?1:-1)*4;
@@ -3317,10 +3317,19 @@ function drawTransition(){
   ctx.fillStyle=C.NEON;   ctx.fillText(`TOTAL : ${G.score} pts`,W/2,H/2-8);
   ctx.fillStyle=C.YELLOW; ctx.fillText('── NIVEAU 2 : Le Couloir ──',W/2,H/2+12);
   ctx.font='10px monospace'; ctx.fillStyle=C.LGRAY;
-  ctx.fillText("Les pions et les profs patrouillent...",W/2,H/2+16);
-  ctx.font='9px monospace'; ctx.fillStyle=C.NEON;
-  ctx.fillText("Trouve une baguette bien rassie et bien dure de la cantine",W/2,H/2+32);
-  ctx.fillText("pour te battre et t'échapper !",W/2,H/2+47);
+  ctx.fillText("Les pions et les profs patrouillent...",W/2,H/2+28);
+  // Encadré mission bien visible
+  const m2x=W/2-190, m2y=H/2+38, m2w=380, m2h=38;
+  ctx.globalAlpha=al*0.85;
+  ctx.fillStyle='#331100'; ctx.fillRect(m2x,m2y,m2w,m2h);
+  ctx.strokeStyle=C.BGUE; ctx.lineWidth=2; ctx.strokeRect(m2x,m2y,m2w,m2h);
+  ctx.globalAlpha=al;
+  ctx.font='bold 13px monospace'; ctx.fillStyle=C.BGUE;
+  ctx.fillText('🥖 MISSION :',W/2,m2y+14);
+  ctx.font='bold 11px monospace'; ctx.fillStyle=C.WHITE;
+  ctx.fillText("Ramasse une baguette rassie de cantine",W/2,m2y+28);
+  ctx.font='bold 10px monospace'; ctx.fillStyle=C.YELLOW;
+  ctx.fillText("et bats-toi avec pour t'échapper !",W/2,m2y+42);
   // Hints contrôles N2
   ctx.globalAlpha=al;
   drawControlHints([
@@ -3364,7 +3373,18 @@ function drawL2End(){
   ctx.fillStyle=C.NEON;   ctx.fillText(`TOTAL : ${G.score} pts`,W/2,H/2+44);
   ctx.font='10px monospace'; ctx.fillStyle=C.LGRAY;
   ctx.fillText('── NIVEAU 3 : Les Toilettes ──',W/2,H/2+60);
-  ctx.fillText("Trouve une brosse à chiottes et escalade jusqu'à la fenêtre !",W/2,H/2+74);
+  // Encadré mission N3
+  const m3x=W/2-190, m3y=H/2+68, m3w=380, m3h=36;
+  ctx.globalAlpha=al*0.85;
+  ctx.fillStyle='#001122'; ctx.fillRect(m3x,m3y,m3w,m3h);
+  ctx.strokeStyle='#44aaff'; ctx.lineWidth=2; ctx.strokeRect(m3x,m3y,m3w,m3h);
+  ctx.globalAlpha=al;
+  ctx.font='bold 12px monospace'; ctx.fillStyle='#44aaff';
+  ctx.fillText('🪣 MISSION :',W/2,m3y+13);
+  ctx.font='bold 11px monospace'; ctx.fillStyle=C.WHITE;
+  ctx.fillText("Ramasse un balai à chiottes",W/2,m3y+26);
+  ctx.font='bold 10px monospace'; ctx.fillStyle=C.YELLOW;
+  ctx.fillText("et bats-toi pour t'échapper par la fenêtre !",W/2,m3y+40);
   // Emojis
   ctx.font='36px monospace'; ctx.textAlign='center';
   ctx.globalAlpha=al*(Math.sin(elapsed*2)*.2+.8);
@@ -4463,25 +4483,57 @@ requestAnimationFrame(loop);
 
 // ── Bouton plein écran ──
 (function(){
-  const btn=document.getElementById('fs-btn');
+  const btn = document.getElementById('fs-btn');
   if(!btn) return;
-  btn.addEventListener('click',()=>{
+
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isStandalone = navigator.standalone === true;
+
+  // Sur iOS en standalone (ajouté à l'écran d'accueil) → déjà plein écran, cache le bouton
+  if(isIOS && isStandalone){ btn.style.display='none'; return; }
+
+  // Sur iOS standard : pas de requestFullscreen → affiche tooltip
+  if(isIOS){
+    btn.textContent = '↗ Plein écran';
+    // Crée le tooltip d'instructions
+    const tip = document.createElement('div');
+    tip.id = 'ios-tip';
+    tip.style.cssText = `
+      display:none; position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
+      background:rgba(20,20,20,0.96); color:#fff; font:14px monospace;
+      border:2px solid #ffcc00; border-radius:14px; padding:14px 20px;
+      z-index:999; text-align:center; line-height:1.7; max-width:300px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.7);
+    `;
+    tip.innerHTML = `<b>📱 Plein écran sur iPhone :</b><br>
+      1. Appuie sur <b>⬆ Partager</b> en bas de Safari<br>
+      2. Sélectionne <b>"Sur l'écran d'accueil"</b><br>
+      3. Rouvre le jeu depuis l'icône créée 🎮<br>
+      <span style="font-size:11px;color:#aaa">← Tap n'importe où pour fermer →</span>`;
+    document.body.appendChild(tip);
+
+    btn.addEventListener('click', ()=>{
+      tip.style.display = tip.style.display==='none' ? 'block' : 'none';
+    });
+    tip.addEventListener('click', ()=>{ tip.style.display='none'; });
+    return;
+  }
+
+  // Tous les autres navigateurs : fullscreen standard
+  btn.addEventListener('click', ()=>{
     if(!document.fullscreenElement){
-      // Demande le plein écran
-      (document.documentElement.requestFullscreen||
-       document.documentElement.webkitRequestFullscreen||
+      (document.documentElement.requestFullscreen ||
+       document.documentElement.webkitRequestFullscreen ||
        document.documentElement.mozRequestFullScreen
       ).call(document.documentElement).catch(()=>{});
-      // Tente de verrouiller l'orientation paysage sur mobile
       try{ screen.orientation?.lock('landscape'); }catch(e){}
     } else {
       (document.exitFullscreen||document.webkitExitFullscreen||
        document.mozCancelFullScreen).call(document)();
     }
   });
-  // Mise à jour du label selon l'état
-  document.addEventListener('fullscreenchange',()=>{
-    btn.textContent=document.fullscreenElement?'✕ QUITTER PLEIN ÉCRAN':'⛶ PLEIN ÉCRAN';
+  document.addEventListener('fullscreenchange', ()=>{
+    btn.textContent = document.fullscreenElement ? '✕ QUITTER PLEIN ÉCRAN' : '⛶ PLEIN ÉCRAN';
   });
 })();
 </script>
