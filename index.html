@@ -149,6 +149,18 @@ const sfx={
     tone(1320, .22, 'sine', .25, .16);
   },
   punch:   ()=>{ noise(.04,180,.5); tone(90,.06,'sawtooth',.4); },
+  chaiseKabam: ()=>{
+    // KABABIIIIM — impact de chaise massif
+    noise(.06, 80, .9);           // BOOM grave très fort
+    noise(.04, 160, .7, .01);     // sub grave
+    noise(.05, 400, .55, .02);    // corps de l'impact
+    noise(.03, 2000, .4, .03);    // éclats aigus
+    tone(120, .12, 'sawtooth', .7);   // note grave sawtooth
+    tone(200, .08, 'sawtooth', .5, .02);
+    tone(80, .2,  'sine',     .6, .03); // résonance grave lente
+    // Cascade descendante (effet KABABIIIIM qui traîne)
+    [440,330,220,110,80].forEach((f,i)=>tone(f,.15,'sawtooth',.3,i*.05));
+  },
   chalk:   ()=>{
     // Craie qui grince sur le tableau — stries hautes fréquences + grattages
     for(let i=0;i<6;i++){
@@ -2096,6 +2108,9 @@ let _n1DoorTimer=30.0;
 // ═══ BONUS BITE FLASH ═══
 let _biteBonus = null; // {timer, maxTimer, angle}
 
+// ═══ BONUS CHAISE FLASH ═══
+let _chaiseBonus = null; // {timer, maxTimer, angle, ex, ey}
+
 // ═══ BATMAN KILL FLASH ═══
 let killFlash = null;
 const BATMAN_WORDS_N2 = ['BAM!','POW!','WHAM!','BAPH!','AÏE!','BLAM!','KA-POW!','CRAC!'];
@@ -2479,6 +2494,67 @@ function drawBiteBonus(){
   ctx.strokeText('+2000 PTS',0, sz*0.72);
   ctx.fillStyle='#ffffff';
   ctx.fillText('+2000 PTS',0, sz*0.72);
+
+  ctx.restore();
+}
+
+function drawChaiseBonus(){
+  if(!_chaiseBonus||_chaiseBonus.timer<=0) return;
+  const t=_chaiseBonus.timer, mt=_chaiseBonus.maxTimer;
+  const fadeIn  = Math.min(1,(mt-t)/(mt*0.10));
+  const fadeOut = Math.min(1, t/(mt*0.28));
+  const alpha   = fadeIn * fadeOut;
+  if(alpha<0.03){ _chaiseBonus=null; return; }
+
+  const pulse = 1 + Math.sin(G.frame*0.7)*0.10;
+  const sz    = ~~(82 * pulse * (0.4+fadeIn*0.6));
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(W/2, H/2 - 30);
+  ctx.rotate(_chaiseBonus.angle);
+
+  // Étoile de fond — orange vif / rouge sang
+  ctx.beginPath();
+  for(let i=0;i<16;i++){
+    const a=i*Math.PI/8, ri=i%2===0?(sz+30):(sz*0.42);
+    i===0?ctx.moveTo(Math.cos(a)*ri,Math.sin(a)*ri):ctx.lineTo(Math.cos(a)*ri,Math.sin(a)*ri);
+  }
+  ctx.closePath();
+  ctx.fillStyle='#ff4400'; ctx.fill();
+
+  ctx.beginPath();
+  for(let i=0;i<16;i++){
+    const a=i*Math.PI/8, ri=i%2===0?(sz+16):(sz*0.32);
+    i===0?ctx.moveTo(Math.cos(a)*ri,Math.sin(a)*ri):ctx.lineTo(Math.cos(a)*ri,Math.sin(a)*ri);
+  }
+  ctx.closePath();
+  ctx.fillStyle='#ff8800'; ctx.fill();
+
+  // KABABIIIIM — texte principal, énorme
+  ctx.font=`900 ${~~(sz*0.78)}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.lineWidth=8; ctx.strokeStyle='#000';
+  ctx.strokeText('KABABIIIIM',0,-sz*0.38);
+  const gK=ctx.createLinearGradient(0,-sz*0.8,0,0);
+  gK.addColorStop(0,'#ffffff'); gK.addColorStop(0.4,'#ffee44'); gK.addColorStop(1,'#ff4400');
+  ctx.fillStyle=gK; ctx.fillText('KABABIIIIM',0,-sz*0.38);
+
+  // "BONUS CHAISE DANS LA FACE"
+  ctx.font=`900 ${~~(sz*0.32)}px monospace`;
+  ctx.lineWidth=5; ctx.strokeStyle='#000';
+  ctx.strokeText('BONUS CHAISE',0, sz*0.18);
+  ctx.strokeText('DANS LA FACE !!!',0, sz*0.52);
+  ctx.fillStyle='#ffffff';
+  ctx.fillText('BONUS CHAISE',0, sz*0.18);
+  ctx.fillStyle='#ffee44';
+  ctx.fillText('DANS LA FACE !!!',0, sz*0.52);
+
+  // +3000 PTS
+  ctx.font=`bold ${~~(sz*0.28)}px monospace`;
+  ctx.lineWidth=4; ctx.strokeStyle='#000';
+  ctx.strokeText('+3000 PTS',0, sz*0.84);
+  ctx.fillStyle='#00ff88'; ctx.fillText('+3000 PTS',0, sz*0.84);
 
   ctx.restore();
 }
@@ -2929,6 +3005,13 @@ function updateEnemies(dt){
         if(e.state==='dead'||!e.on) continue;
         if(p.x>e.x+2&&p.x<e.x+e.w-2&&p.y>e.y+2&&p.y<e.y+e.h-2){
           hitEnemy(e);
+          // BONUS CHAISE DANS LA FACE
+          G.killScore += 3000;
+          G.score = G.scoreBonus + G.killScore + ~~(G.maxX/8);
+          _chaiseBonus = {timer:2.6, maxTimer:2.6, angle:(Math.random()-0.5)*0.2,
+                          ex:~~wx(e.x+e.w/2), ey:~~(e.y+e.h/2)};
+          sfx.chaiseKabam&&sfx.chaiseKabam();
+          spawnFT('🪑 +3000 !!!', KV.x+16, KV.y-60, '#ff8800', true);
           if(e.hp<=0&&(e.type==='INTELLO'||e.type==='INTELLO_S'||e.type==='INTELLO_J'||e.type==='INTELLO_GROS'||e.type==='INTELLO_D')){
             bouletteItems.push({on:true,x:e.x,y:GND-14,glowT:0,count:3,classroomDrop:true});
           }
@@ -5695,6 +5778,8 @@ function update(dt){
       if(_chalkDrawing&&_chalkDrawing.timer>0) _chalkDrawing.timer-=dt;
       // Décrémente le flash BONUS BITE
       if(_biteBonus&&_biteBonus.timer>0) _biteBonus.timer-=dt;
+      // Décrémente le flash KABABIIIIM chaise
+      if(_chaiseBonus&&_chaiseBonus.timer>0) _chaiseBonus.timer-=dt;
     } else if(G.level===3){ // cantine
       updateBaguetteItems(dt);
       updateCopines(dt);
@@ -5927,6 +6012,7 @@ function render(){
       drawHUD();
       drawKillFlash();
       drawBiteBonus();
+      drawChaiseBonus();
       drawIntoxOverlay();
       if(G.state===ST.PAUSE) drawPause();
       break;
