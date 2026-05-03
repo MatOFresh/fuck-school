@@ -2128,10 +2128,15 @@ function drawBonuses(){
 
 // ═══ COPINES ═══
 function updateCopines(dt){
+  let _autoKissed = false;
   for(const c of copines){
     if(!c.on) continue;
     c.frame+=dt*60;
     c.near = Math.abs(KV.x+16 - (c.x+14)) < 55;
+    // Auto-kiss sur mobile : pas besoin de bouton
+    if(isMobile && !_autoKissed && c.on && c.near && KV.hp < KV.maxHp && KV.onGnd){
+      doKiss(); _autoKissed = true;
+    }
   }
 }
 function _drawCopine(x,y,frame,variant,near){
@@ -2184,12 +2189,14 @@ function _drawCopine(x,y,frame,variant,near){
     ctx.fillText('❤',x+5, y-5+~~(ht*.6));
     ctx.fillText('❤',x+23,y-5+~~(ht*.6));
     ctx.globalAlpha=1;
-    // Invitation
-    ctx.font='bold 8px monospace'; ctx.textAlign='center';
-    ctx.strokeStyle=C.BLACK; ctx.lineWidth=2;
-    ctx.strokeText('[E] Bisous',x+14,y-22);
-    ctx.fillStyle=C.LPINK;
-    ctx.fillText('[E] Bisous',x+14,y-22);
+    // Invitation (PC uniquement - mobile = auto)
+    if(!isMobile){
+      ctx.font='bold 8px monospace'; ctx.textAlign='center';
+      ctx.strokeStyle=C.BLACK; ctx.lineWidth=2;
+      ctx.strokeText('[E] Bisous',x+14,y-22);
+      ctx.fillStyle=C.LPINK;
+      ctx.fillText('[E] Bisous',x+14,y-22);
+    }
   }
 }
 function drawCopines(){
@@ -3695,10 +3702,12 @@ canvas.addEventListener('touchstart',e=>{
           if(gy >= MZ.ATK_SPLIT){
             // Bouton SAUT (moitié basse)
             activeTouches.set(t.identifier,{type:'rzone',startX:gx,startY:gy,startTime:Date.now(),swiped:false});
+            CTRL.jump=true;
             doJump(); jumpHeld=true;
           } else {
             // Bouton ATK (moitié haute)
             activeTouches.set(t.identifier,{type:'rzone_atk'});
+            CTRL.atk=true;
             doAtk();
           }
           continue;
@@ -3781,8 +3790,8 @@ canvas.addEventListener('touchend',e=>{
 
     if(touch.type==='btn')      { CTRL[touch.btn]=false; }
     if(touch.type==='lzone')    { CTRL[touch.dir]=false; }
-    if(touch.type==='rzone')    { jumpHeld=false; }
-    if(touch.type==='rzone_atk'){ /* rien à relâcher */ }
+    if(touch.type==='rzone')    { jumpHeld=false; CTRL.jump=false; }
+    if(touch.type==='rzone_atk'){ CTRL.atk=false; }
     if(touch.type==='dpad')     { CTRL.left=false; CTRL.right=false; CTRL.up=false; CTRL.down=false; }
 
     activeTouches.delete(t.identifier);
@@ -3796,7 +3805,8 @@ canvas.addEventListener('touchcancel',e=>{
     if(touch){
       if(touch.type==='btn')      CTRL[touch.btn]=false;
       if(touch.type==='lzone')    CTRL[touch.dir]=false;
-      if(touch.type==='rzone')    jumpHeld=false;
+      if(touch.type==='rzone')    { jumpHeld=false; CTRL.jump=false; }
+      if(touch.type==='rzone_atk'){ CTRL.atk=false; }
       if(touch.type==='dpad')     { CTRL.left=false; CTRL.right=false; CTRL.up=false; CTRL.down=false; }
     }
     activeTouches.delete(t.identifier);
@@ -3939,68 +3949,96 @@ function drawVirtualButtons(){
 }
 
 function _drawMobileZonesUI(){
-  const a=0.20, rx=14;
-  const RW=W-MZ.R_START-8; // largeur zone droite
-  const RX=MZ.R_START+4;
-  // Y-split zone droite
-  const atkH = MZ.ATK_SPLIT - MZ.TOP - 4;    // hauteur bouton ATK
-  const jmpY = MZ.ATK_SPLIT + 4;              // Y départ bouton SAUT
+  const BASE = 0.22;   // alpha fond bouton
+  const ICON = 0.90;   // alpha icône/texte
+  const PRES = 0.48;   // alpha fond quand pressé
+  const RX   = MZ.R_START + 4;
+  const RW   = W - MZ.R_START - 8;
+  const atkH = MZ.ATK_SPLIT - MZ.TOP - 4;
+  const jmpY = MZ.ATK_SPLIT + 4;
   const jmpH = H - jmpY - 4;
-
+  const rx   = 18;
   ctx.save();
 
-  // ── Zone gauche : fond + flèches ──
-  const LY = H - 78;
-  ctx.globalAlpha=a;
-  ctx.fillStyle='#fff';
-  _rr(8, LY, MZ.L_END-12, 56, rx);
-  ctx.fill();
-  ctx.globalAlpha=a*2.8; ctx.fillStyle='#fff';
-  ctx.font='bold 26px monospace'; ctx.textAlign='center';
-  ctx.fillText('◄', MZ.L_MID*0.5, LY+36);
-  ctx.fillText('►', MZ.L_MID*1.5, LY+36);
+  // ══ ZONE GAUCHE : deux boutons séparés ══
+  const LY = H - 88;
+  const LH = 74;
+  const halfW = Math.floor((MZ.L_END - 18) / 2);
+  const LX1 = 5, LX2 = LX1 + halfW + 8;
 
-  // ── Bouton ATK (zone droite haute) ──
-  ctx.globalAlpha=a;
-  ctx.fillStyle='#2244cc';
+  // Bouton ◄
+  ctx.globalAlpha = CTRL.left ? PRES : BASE;
+  ctx.fillStyle   = CTRL.left ? '#ff6030' : '#ddeeff';
+  _rr(LX1, LY, halfW, LH, rx); ctx.fill();
+  // Stroke léger
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+  _rr(LX1, LY, halfW, LH, rx); ctx.stroke();
+  // Flèche
+  ctx.globalAlpha = CTRL.left ? 1 : ICON;
+  ctx.fillStyle   = '#fff';
+  ctx.font        = 'bold 40px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('◄', LX1 + halfW/2, LY + LH*0.52);
+  ctx.font = 'bold 10px monospace'; ctx.globalAlpha = 0.75;
+  ctx.fillText('GAUCHE', LX1 + halfW/2, LY + LH - 7);
+
+  // Bouton ►
+  ctx.globalAlpha = CTRL.right ? PRES : BASE;
+  ctx.fillStyle   = CTRL.right ? '#40c0ff' : '#ddeeff';
+  _rr(LX2, LY, halfW, LH, rx); ctx.fill();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+  _rr(LX2, LY, halfW, LH, rx); ctx.stroke();
+  ctx.globalAlpha = CTRL.right ? 1 : ICON;
+  ctx.fillStyle   = '#fff';
+  ctx.font        = 'bold 40px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('►', LX2 + halfW/2, LY + LH*0.52);
+  ctx.font = 'bold 10px monospace'; ctx.globalAlpha = 0.75;
+  ctx.fillText('DROITE', LX2 + halfW/2, LY + LH - 7);
+
+  // ══ ZONE DROITE HAUTE : ATK ══
+  const atkIcon = G.level===3 ? '🪣' : '🥖';
+  const atkLabel = G.level===3 ? 'BROSSE' : 'BAGUETTE';
+  ctx.globalAlpha = CTRL.atk ? PRES : BASE;
+  ctx.fillStyle   = CTRL.atk ? '#5577ff' : '#2244cc';
   _rr(RX, MZ.TOP+2, RW, atkH, rx); ctx.fill();
-  ctx.globalAlpha=a*3; ctx.fillStyle='#fff';
-  ctx.font='bold 18px monospace'; ctx.textAlign='center';
-  ctx.fillText('🥖', RX+RW/2, MZ.TOP+2+atkH*0.52);
-  ctx.font='bold 8px monospace';
-  ctx.fillText('ATK', RX+RW/2, MZ.TOP+2+atkH-6);
+  ctx.globalAlpha = 0.35; ctx.strokeStyle='#88aaff'; ctx.lineWidth=1.5;
+  _rr(RX, MZ.TOP+2, RW, atkH, rx); ctx.stroke();
+  ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
+  ctx.font='bold 38px monospace'; ctx.textAlign='center';
+  ctx.fillText(atkIcon, RX+RW/2, MZ.TOP+2+atkH*0.48);
+  ctx.font='bold 11px monospace'; ctx.globalAlpha=0.80;
+  ctx.fillText(atkLabel, RX+RW/2, MZ.TOP+2+atkH-8);
 
-  // ── Bouton SAUT (zone droite basse) ──
-  ctx.globalAlpha=a;
-  ctx.fillStyle='#1a8030';
+  // ══ ZONE DROITE BASSE : SAUT ══
+  ctx.globalAlpha = CTRL.jump ? PRES : BASE;
+  ctx.fillStyle   = CTRL.jump ? '#33cc55' : '#1a8030';
   _rr(RX, jmpY, RW, jmpH, rx); ctx.fill();
-  ctx.globalAlpha=a*3; ctx.fillStyle='#fff';
-  ctx.font='bold 26px monospace'; ctx.textAlign='center';
-  ctx.fillText('▲', RX+RW/2, jmpY+jmpH*0.5);
-  ctx.font='bold 8px monospace';
-  ctx.fillText('SAUT', RX+RW/2, jmpY+jmpH-6);
+  ctx.globalAlpha = 0.35; ctx.strokeStyle='#66ff88'; ctx.lineWidth=1.5;
+  _rr(RX, jmpY, RW, jmpH, rx); ctx.stroke();
+  ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
+  ctx.font='bold 44px monospace'; ctx.textAlign='center';
+  ctx.fillText('▲', RX+RW/2, jmpY+jmpH*0.48);
+  ctx.font='bold 11px monospace'; ctx.globalAlpha=0.80;
+  ctx.fillText('SAUT', RX+RW/2, jmpY+jmpH-8);
 
-  // ── Bouton BALL (centre bas, si hasBoulette) ──
+  // ══ BOUTON BALL (centre bas) ══
   if(KV.hasBoulette){
-    const bx=MZ.L_END+4, bw=MZ.R_START-MZ.L_END-8, by=H-52, bh=44;
-    ctx.globalAlpha=a*1.5; ctx.fillStyle='#888820';
-    _rr(bx,by,bw,bh,rx); ctx.fill();
-    ctx.globalAlpha=a*4; ctx.fillStyle='#fff';
-    ctx.font='bold 16px monospace'; ctx.textAlign='center';
-    ctx.fillText('🧻', bx+bw/2, by+bh*0.52);
-    ctx.font='bold 7px monospace';
-    ctx.fillText('BALL', bx+bw/2, by+bh-5);
+    const bw = MZ.R_START - MZ.L_END - 10;
+    const bh = 58;
+    const bx = MZ.L_END + 5;
+    const by = H - bh - 4;
+    ctx.globalAlpha = 0.38; ctx.fillStyle='#998800';
+    _rr(bx, by, bw, bh, rx); ctx.fill();
+    ctx.globalAlpha = 0.40; ctx.strokeStyle='#ffee44'; ctx.lineWidth=1.5;
+    _rr(bx, by, bw, bh, rx); ctx.stroke();
+    ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
+    ctx.font='bold 28px monospace'; ctx.textAlign='center';
+    ctx.fillText('🧻', bx+bw/2, by+bh*0.46);
+    ctx.font='bold 10px monospace'; ctx.globalAlpha=0.80;
+    ctx.fillText('BALL', bx+bw/2, by+bh-7);
   }
 
-  ctx.restore();
-
-  // ── Feedbacks actifs ──
-  ctx.save(); ctx.textAlign='center';
-  if(CTRL.left||CTRL.right){
-    ctx.globalAlpha=0.7; ctx.fillStyle=CTRL.left?'#ff6030':'#40c0ff';
-    ctx.font='bold 30px monospace';
-    ctx.fillText(CTRL.left?'◄':'►', CTRL.left?MZ.L_MID*0.5:MZ.L_MID*1.5, LY+38);
-  }
   ctx.restore();
 }
 
