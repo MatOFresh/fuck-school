@@ -4503,13 +4503,23 @@ function drawBG(){
 // ═══ CONTRÔLES ═══
 const CTRL={left:false,right:false,jump:false,atk:false,kiss:false,up:false,down:false};
 // Boutons classiques (utilisés en mode 'buttons' ou PC)
+// ── Boutons ronds style Genshin ──────────────────────────────────────────
+// cx/cy = centre, r = rayon. Positionnés dans les zones naturelles du pouce.
+const GBT = {
+  mvL:  { cx:72,    cy:H-72, r:54, col:'#cc2200', icon:'◄', lbl:'GAUCHE' },
+  mvR:  { cx:178,   cy:H-72, r:54, col:'#cc2200', icon:'►', lbl:'DROITE' },
+  saut: { cx:W-66,  cy:H-120,r:54, col:'#1a7a30', icon:'▲', lbl:'SAUT'   },
+  atk:  { cx:W-142, cy:H-62, r:48, col:'#1848c8', icon:'🥖',lbl:'ATK'    },
+  ball: { cx:W-66,  cy:H-55, r:40, col:'#887700', icon:'📄', lbl:'BALL'  },
+};
+// Alias legacy pour compatibilité avec le reste du code (mode 'buttons')
 const BTN_ZONES={
-  left: {x:6,    y:H-68, w:60,h:62, col:'#d03000', icon:'◀', lbl:'',        key:''},
-  right:{x:74,   y:H-68, w:60,h:62, col:'#d03000', icon:'▶', lbl:'',        key:''},
-  ball: {x:W-256,y:H-68, w:60,h:62, col:'#887700', icon:'🧻', lbl:'BALL',   key:'X'},
-  kiss: {x:W-188,y:H-68, w:60,h:62, col:'#b0106e', icon:'💋', lbl:'BISOU',  key:'E'},
-  atk:  {x:W-120,y:H-68, w:60,h:62, col:'#1848c8', icon:'🥖', lbl:'ATK',   key:'Z'},
-  jump: {x:W-60, y:H-68, w:58,h:62, col:'#1a8030', icon:'▲', lbl:'SAUT',   key:'⎵'},
+  left: {x:6,    y:H-68, w:60,h:62, col:'#d03000', icon:'◀', lbl:'',      key:''},
+  right:{x:74,   y:H-68, w:60,h:62, col:'#d03000', icon:'▶', lbl:'',      key:''},
+  ball: {x:W-256,y:H-68, w:60,h:62, col:'#887700', icon:'📄', lbl:'BALL', key:'X'},
+  kiss: {x:W-188,y:H-68, w:60,h:62, col:'#b0106e', icon:'💋', lbl:'BISOU',key:'E'},
+  atk:  {x:W-120,y:H-68, w:60,h:62, col:'#1848c8', icon:'🥖', lbl:'ATK', key:'Z'},
+  jump: {x:W-60, y:H-68, w:58,h:62, col:'#1a8030', icon:'▲', lbl:'SAUT', key:'⎵'},
 };
 
 // Zones mobiles (mode 'zones')
@@ -4598,43 +4608,45 @@ canvas.addEventListener('touchstart',e=>{
     // ══════════════════════════════════════════════════════════
     if(G.state===ST.PLAY){
       if(isMobile&&mobileMode==='zones'){
-        if(gy<=MZ.TOP) continue; // zone UI, déjà gérée
+        if(gy<=MZ.TOP) continue;
 
-        // Zone gauche → mouvement
-        if(gx<MZ.L_END){
-          const dir=_mzLeft(gx)?'left':'right';
+        // ── Détection cercles Genshin ──
+        const _d=(b)=>{ const dx=gx-b.cx,dy=gy-b.cy; return dx*dx+dy*dy; };
+        const inMvL  = _d(GBT.mvL)  <= GBT.mvL.r *GBT.mvL.r;
+        const inMvR  = _d(GBT.mvR)  <= GBT.mvR.r *GBT.mvR.r;
+        const inSaut = _d(GBT.saut) <= GBT.saut.r*GBT.saut.r;
+        const inAtk  = _d(GBT.atk)  <= GBT.atk.r *GBT.atk.r;
+        const ballAvail = KV.hasBoulette||(G.level===1&&KV.boulettes>0);
+        const inBall = ballAvail && _d(GBT.ball) <= GBT.ball.r*GBT.ball.r;
+
+        if(inMvL){
+          activeTouches.set(t.identifier,{type:'mvL'}); CTRL.left=true; continue;
+        }
+        if(inMvR){
+          activeTouches.set(t.identifier,{type:'mvR'}); CTRL.right=true; continue;
+        }
+        if(inSaut){
+          activeTouches.set(t.identifier,{type:'saut'}); CTRL.jump=true; doJump(); jumpHeld=true; continue;
+        }
+        if(inAtk){
+          activeTouches.set(t.identifier,{type:'atk'}); CTRL.atk=true; doAtk(); continue;
+        }
+        if(inBall){
+          activeTouches.set(t.identifier,{type:'ball'}); doThrowBall(); continue;
+        }
+
+        // Zone gauche étendue (hors cercles) → mouvement
+        if(gx < W*0.40 && gy > MZ.TOP){
+          const dir = gx < W*0.20 ? 'left' : 'right';
           activeTouches.set(t.identifier,{type:'lzone',dir,startX:gx,startY:gy});
-          CTRL[dir]=true;
-          continue;
+          CTRL[dir]=true; continue;
         }
 
-        // Zone droite → SAUT (bas) ou ATK (haut)
-        if(gx>=MZ.R_START){
-          if(gy >= MZ.ATK_SPLIT){
-            // Bouton SAUT (moitié basse)
-            activeTouches.set(t.identifier,{type:'rzone',startX:gx,startY:gy,startTime:Date.now(),swiped:false});
-            CTRL.jump=true;
-            doJump(); jumpHeld=true;
-          } else {
-            // Bouton ATK (moitié haute)
-            activeTouches.set(t.identifier,{type:'rzone_atk'});
-            CTRL.atk=true;
-            doAtk();
-          }
-          continue;
-        }
-        // BALL : petit bouton central (visible si hasBoulette)
-        if(KV.hasBoulette && gx>=MZ.L_END && gx<MZ.R_START && gy>=H*0.72){
-          doThrowBall(); continue;
-        }
-
-        // Zone centrale → tap sur Kevin = KISS contextuel
+        // Zone centrale → tap Kevin = KISS
         {
           const camX=Math.max(0,Math.min(WORLD_W-W,KV.x-W/3));
-          const ksx=KV.x-camX, ksy=KV.y;
-          if(Math.abs(gx-ksx-16)<44&&Math.abs(gy-ksy-24)<44){
-            doKiss(); continue;
-          }
+          const ksx=KV.x-camX;
+          if(Math.abs(gx-ksx-16)<44&&Math.abs(gy-KV.y-24)<44){ doKiss(); continue; }
         }
 
       } else {
@@ -4678,6 +4690,12 @@ canvas.addEventListener('touchmove',e=>{
 
     // Zone gauche : sliding direction
     if(touch.type==='lzone'){ _setMoveDir(t.identifier,gx,gy); }
+    // Cercles mvL/mvR : slide entre les deux
+    if(touch.type==='mvL'||touch.type==='mvR'){
+      const nowL = gx < (GBT.mvL.cx+GBT.mvR.cx)/2;
+      if(nowL && touch.type==='mvR'){ CTRL.right=false; CTRL.left=true; touch.type='mvL'; }
+      if(!nowL && touch.type==='mvL'){ CTRL.left=false; CTRL.right=true; touch.type='mvR'; }
+    }
 
     // Zone droite : détection swipe
     if(touch.type==='rzone'&&!touch.swiped){
@@ -4701,6 +4719,10 @@ canvas.addEventListener('touchend',e=>{
 
     if(touch.type==='btn')      { CTRL[touch.btn]=false; }
     if(touch.type==='lzone')    { CTRL[touch.dir]=false; }
+    if(touch.type==='mvL')      { CTRL.left=false; }
+    if(touch.type==='mvR')      { CTRL.right=false; }
+    if(touch.type==='saut')     { jumpHeld=false; CTRL.jump=false; }
+    if(touch.type==='atk')      { CTRL.atk=false; }
     if(touch.type==='rzone')    { jumpHeld=false; CTRL.jump=false; }
     if(touch.type==='rzone_atk'){ CTRL.atk=false; }
     if(touch.type==='dpad')     { CTRL.left=false; CTRL.right=false; CTRL.up=false; CTRL.down=false; }
@@ -4716,6 +4738,10 @@ canvas.addEventListener('touchcancel',e=>{
     if(touch){
       if(touch.type==='btn')      CTRL[touch.btn]=false;
       if(touch.type==='lzone')    CTRL[touch.dir]=false;
+      if(touch.type==='mvL')      CTRL.left=false;
+      if(touch.type==='mvR')      CTRL.right=false;
+      if(touch.type==='saut')     { jumpHeld=false; CTRL.jump=false; }
+      if(touch.type==='atk')      CTRL.atk=false;
       if(touch.type==='rzone')    { jumpHeld=false; CTRL.jump=false; }
       if(touch.type==='rzone_atk'){ CTRL.atk=false; }
       if(touch.type==='dpad')     { CTRL.left=false; CTRL.right=false; CTRL.up=false; CTRL.down=false; }
@@ -4861,95 +4887,104 @@ function drawVirtualButtons(){
   }
 }
 
+// ── Dessin d'un bouton rond Genshin ─────────────────────────────────────
+function _drawGBtn(b, icon, label, pressed, available){
+  if(available===false) return;
+  const {cx,cy,r,col}=b;
+  ctx.save();
+  ctx.textBaseline='middle';
+
+  // Fond : semi-transparent + plus opaque si pressé
+  ctx.globalAlpha = pressed ? 0.72 : 0.30;
+  ctx.fillStyle   = col;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+
+  // Brillance intérieure (halo haut du bouton — effet 3D Genshin)
+  const grd = ctx.createRadialGradient(cx,cy-r*0.3,r*0.1, cx,cy-r*0.1,r*0.9);
+  grd.addColorStop(0,'rgba(255,255,255,0.18)');
+  grd.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+
+  // Contour blanc
+  ctx.globalAlpha = pressed ? 0.95 : 0.50;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = pressed ? 2.5 : 1.5;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+
+  // Halo coloré quand pressé
+  if(pressed){
+    ctx.globalAlpha = 0.30;
+    ctx.strokeStyle = col; ctx.lineWidth = 6;
+    ctx.shadowColor = col; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(cx,cy,r+3,0,Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Icône
+  ctx.globalAlpha = pressed ? 1.0 : 0.88;
+  ctx.fillStyle   = '#fff';
+  ctx.textAlign   = 'center';
+  ctx.font = `bold ${r>48?36:r>40?30:24}px monospace`;
+  ctx.fillText(icon, cx, cy - 7);
+
+  // Label
+  ctx.font = `bold 10px monospace`;
+  ctx.globalAlpha = pressed ? 1.0 : 0.72;
+  ctx.fillText(label, cx, cy + r - 13);
+
+  ctx.restore();
+}
+
 function _drawMobileZonesUI(){
-  const BASE = 0.22;   // alpha fond bouton
-  const ICON = 0.90;   // alpha icône/texte
-  const PRES = 0.48;   // alpha fond quand pressé
-  const RX   = MZ.R_START + 4;
-  const RW   = W - MZ.R_START - 8;
-  const atkH = MZ.ATK_SPLIT - MZ.TOP - 4;
-  const jmpY = MZ.ATK_SPLIT + 4;
-  const jmpH = H - jmpY - 4;
-  const rx   = 18;
   ctx.save();
 
-  // ══ ZONE GAUCHE : deux boutons séparés ══
-  const LY = H - 88;
-  const LH = 74;
-  const halfW = Math.floor((MZ.L_END - 18) / 2);
-  const LX1 = 5, LX2 = LX1 + halfW + 8;
+  // ══ BOUTONS MOUVEMENT (gauche) — style joystick Genshin ══
+  // Fond de la zone joystick
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(125, H-72, 110, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(125,H-72,108,0,Math.PI*2); ctx.stroke();
 
-  // Bouton ◄
-  ctx.globalAlpha = CTRL.left ? PRES : BASE;
-  ctx.fillStyle   = CTRL.left ? '#ff6030' : '#ddeeff';
-  _rr(LX1, LY, halfW, LH, rx); ctx.fill();
-  // Stroke léger
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-  _rr(LX1, LY, halfW, LH, rx); ctx.stroke();
-  // Flèche
-  ctx.globalAlpha = CTRL.left ? 1 : ICON;
-  ctx.fillStyle   = '#fff';
-  ctx.font        = 'bold 40px monospace'; ctx.textAlign = 'center';
-  ctx.fillText('◄', LX1 + halfW/2, LY + LH*0.52);
-  ctx.font = 'bold 10px monospace'; ctx.globalAlpha = 0.75;
-  ctx.fillText('GAUCHE', LX1 + halfW/2, LY + LH - 7);
+  // Séparateur vertical au centre du joystick
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(125,H-72-54); ctx.lineTo(125,H-72+54); ctx.stroke();
 
-  // Bouton ►
-  ctx.globalAlpha = CTRL.right ? PRES : BASE;
-  ctx.fillStyle   = CTRL.right ? '#40c0ff' : '#ddeeff';
-  _rr(LX2, LY, halfW, LH, rx); ctx.fill();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-  _rr(LX2, LY, halfW, LH, rx); ctx.stroke();
-  ctx.globalAlpha = CTRL.right ? 1 : ICON;
-  ctx.fillStyle   = '#fff';
-  ctx.font        = 'bold 40px monospace'; ctx.textAlign = 'center';
-  ctx.fillText('►', LX2 + halfW/2, LY + LH*0.52);
-  ctx.font = 'bold 10px monospace'; ctx.globalAlpha = 0.75;
-  ctx.fillText('DROITE', LX2 + halfW/2, LY + LH - 7);
+  // Les deux flèches
+  _drawGBtn(GBT.mvL, '◄', '', CTRL.left);
+  _drawGBtn(GBT.mvR, '►', '', CTRL.right);
 
-  // ══ ZONE DROITE HAUTE : ATK ══
-  const atkIcon = G.level===4 ? '🪣' : '🥖';
-  const atkLabel = G.level===4 ? 'BROSSE' : 'BAGUETTE';
-  ctx.globalAlpha = CTRL.atk ? PRES : BASE;
-  ctx.fillStyle   = CTRL.atk ? '#5577ff' : '#2244cc';
-  _rr(RX, MZ.TOP+2, RW, atkH, rx); ctx.fill();
-  ctx.globalAlpha = 0.35; ctx.strokeStyle='#88aaff'; ctx.lineWidth=1.5;
-  _rr(RX, MZ.TOP+2, RW, atkH, rx); ctx.stroke();
-  ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
-  ctx.font='bold 38px monospace'; ctx.textAlign='center';
-  ctx.fillText(atkIcon, RX+RW/2, MZ.TOP+2+atkH*0.48);
-  ctx.font='bold 11px monospace'; ctx.globalAlpha=0.80;
-  ctx.fillText(atkLabel, RX+RW/2, MZ.TOP+2+atkH-8);
+  // ══ CLUSTER ACTION (droite) — disposition Genshin diamond ══
+  // Fond cluster transparent
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.ellipse(W-104, H-88, 104, 96, 0, 0, Math.PI*2); ctx.fill();
 
-  // ══ ZONE DROITE BASSE : SAUT ══
-  ctx.globalAlpha = CTRL.jump ? PRES : BASE;
-  ctx.fillStyle   = CTRL.jump ? '#33cc55' : '#1a8030';
-  _rr(RX, jmpY, RW, jmpH, rx); ctx.fill();
-  ctx.globalAlpha = 0.35; ctx.strokeStyle='#66ff88'; ctx.lineWidth=1.5;
-  _rr(RX, jmpY, RW, jmpH, rx); ctx.stroke();
-  ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
-  ctx.font='bold 44px monospace'; ctx.textAlign='center';
-  ctx.fillText('▲', RX+RW/2, jmpY+jmpH*0.48);
-  ctx.font='bold 11px monospace'; ctx.globalAlpha=0.80;
-  ctx.fillText('SAUT', RX+RW/2, jmpY+jmpH-8);
+  // SAUT — gros bouton en haut
+  _drawGBtn(GBT.saut, '▲', 'SAUT', CTRL.jump);
 
-  // ══ BOUTON BALL (centre bas) ══
-  if(KV.hasBoulette){
-    const bw = MZ.R_START - MZ.L_END - 10;
-    const bh = 58;
-    const bx = MZ.L_END + 5;
-    const by = H - bh - 4;
-    ctx.globalAlpha = 0.38; ctx.fillStyle='#998800';
-    _rr(bx, by, bw, bh, rx); ctx.fill();
-    ctx.globalAlpha = 0.40; ctx.strokeStyle='#ffee44'; ctx.lineWidth=1.5;
-    _rr(bx, by, bw, bh, rx); ctx.stroke();
-    ctx.globalAlpha = ICON; ctx.fillStyle='#fff';
-    ctx.font='bold 28px monospace'; ctx.textAlign='center';
-    ctx.fillText('🧻', bx+bw/2, by+bh*0.46);
-    ctx.font='bold 10px monospace'; ctx.globalAlpha=0.80;
-    ctx.fillText('BALL', bx+bw/2, by+bh-7);
+  // ATK — bouton bas gauche (icône selon niveau)
+  const atkIcon  = G.level===4 ? '🪣' : '🥖';
+  const atkLabel = G.level===4 ? 'BROSSE' : (G.level===1 ? 'LANCER' : 'ATK');
+  _drawGBtn(GBT.atk, atkIcon, atkLabel, CTRL.atk);
+
+  // BALL — bouton bas droit (seulement si disponible)
+  const ballAvail = KV.hasBoulette || (G.level===1 && KV.boulettes>0);
+  if(ballAvail){
+    const ballCount = G.level===1 ? KV.boulettes : '';
+    _drawGBtn(GBT.ball, '📄', `BALL${ballCount?` x${ballCount}`:''}`, false);
+  }
+
+  // ══ Indicateur boulettes N1 au centre ══
+  if(G.level===1){
+    ctx.globalAlpha=0.80; ctx.fillStyle='#fff';
+    ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(`📄 x${KV.boulettes}`, W/2, H-18);
   }
 
   ctx.restore();
