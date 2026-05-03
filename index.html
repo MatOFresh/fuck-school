@@ -5041,6 +5041,7 @@ function update(dt){
     if(G.level===1){
       // Niveau 1 côté boulettes — pas de baguette ni brosse
       updateBouletteItems(dt);
+      updateTokTokItems(dt);
       if(KV.bouletteT>0) KV.bouletteT-=dt;
     } else if(G.level===3){ // cantine
       updateBaguetteItems(dt);
@@ -5124,7 +5125,7 @@ function render(){
         drawBaguetteItems();
       }
       drawBouletteItems();
-      if(G.level!==1) drawTokTokItems();
+      drawTokTokItems(); // dessiné pour tous les niveaux (tokTokItems=[] en N1 si aucun)
       for(const e of enemies) drawEnemy(e);
       drawBonuses();
       if(G.level!==4&&G.level!==1) drawCopines();
@@ -5288,7 +5289,9 @@ function startClassroom(){
   }));
   // Clear tout le reste
   projectiles=[]; copines=[]; baguetteItems=[]; kvBoulettes=[];
-  tokTokItems=[]; brosseItems=[]; smokeItems=[]; blockers=[];
+  // 2 cartes TokTok dans N1 — sur pupitres du fond (GND-240), accessibles depuis 2e rang seulement
+  tokTokItems = [{x:600,y:GND-240-20},{x:1350,y:GND-240-20}].map(t=>({on:true,x:t.x,y:t.y,glowT:0}));
+  brosseItems=[]; smokeItems=[]; blockers=[];
   bonuses=[]; PTPOOL.forEach(p=>p.on=false); FTPOOL.forEach(f=>f.on=false);
   killFlash=null; stopTokTokMusic();
   cam.x=0; cam.tx=0;
