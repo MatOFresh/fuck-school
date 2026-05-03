@@ -1784,17 +1784,24 @@ function drawChairItems(){
 
 function triggerChalkDraw(){
   _chalkDrawing={timer:6.0, frame:0};
-  spawnFT('✏️ KEVIN DESSINE AU TABLEAU !!!', KV.x+16, KV.y-60, '#ffffff', true);
+  // +2000 points + flash KABOUM
+  G.killScore += 2000;
+  G.score = G.scoreBonus + G.killScore + ~~(G.maxX/8);
+  _biteBonus = {timer:2.8, maxTimer:2.8, angle:(Math.random()-0.5)*0.15};
+  spawnFT('✏️ +2000 POINTS !!!', KV.x+16, KV.y-60, '#ffff00', true);
+  // Intellos réagissent
+  let delay = 400;
   for(const e of enemies){
     if(!e.on||e.state==='dead') continue;
-    if(Math.abs(e.x-KV.x)<350 && (e.type==='INTELLO'||e.type==='INTELLO_J'||e.type==='INTELLO_S'||e.type==='INTELLO_D')){
-      const ex=e.x, ew=e.w, ey=e.y;
+    if(Math.abs(e.x-KV.x)<400 && (e.type==='INTELLO'||e.type==='INTELLO_J'||e.type==='INTELLO_S'||e.type==='INTELLO_D')){
+      const ex=e.x, ew=e.w, ey=e.y, d=delay;
+      delay += 300+~~(Math.random()*400);
       setTimeout(()=>{
         if(!e.on||e.state==='dead') return;
-        spawnFT('MADAME IL A DESSINÉ UNE BITE !!!', ex+ew/2, ey-30, '#ff66ff', true);
-        e.phraseT=90;
+        spawnFT('MADAME KEVIN A DESSINÉ UNE BITE AU TABLEAU !!!', ex+ew/2, ey-30, '#ff66ff', true);
+        e.phraseT=120;
         e.state='chase';
-      }, 600+Math.random()*800);
+      }, d);
     }
   }
 }
@@ -2067,6 +2074,9 @@ let chairItems=[];
 let _chalkDrawing=null; // {timer, frame}
 let _n1DoorOpen=true;
 let _n1DoorTimer=30.0;
+
+// ═══ BONUS BITE FLASH ═══
+let _biteBonus = null; // {timer, maxTimer, angle}
 
 // ═══ BATMAN KILL FLASH ═══
 let killFlash = null;
@@ -2397,6 +2407,62 @@ function updateParticles(dt){
     if(!f.on) continue;
     f.wy+=f.vy*dt*60; f.life-=f.decay*dt*60; if(f.life<=0) f.on=false;
   }
+}
+function drawBiteBonus(){
+  if(!_biteBonus||_biteBonus.timer<=0) return;
+  const t=_biteBonus.timer, mt=_biteBonus.maxTimer;
+  const fadeIn  = Math.min(1,(mt-t)/(mt*0.12));
+  const fadeOut = Math.min(1, t/(mt*0.3));
+  const alpha   = fadeIn * fadeOut;
+  if(alpha<0.03){ _biteBonus=null; return; }
+
+  const pulse = 1 + Math.sin(G.frame*0.6)*0.08;
+  const sz    = ~~(74 * pulse * (0.5+fadeIn*0.5));
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(W/2, H/2 - 40);
+  ctx.rotate(_biteBonus.angle);
+
+  // Étoile de fond (jaune-orange)
+  ctx.beginPath();
+  for(let i=0;i<14;i++){
+    const a=i*Math.PI/7, ri=i%2===0?(sz+22):(sz*0.45);
+    i===0 ? ctx.moveTo(Math.cos(a)*ri, Math.sin(a)*ri)
+          : ctx.lineTo(Math.cos(a)*ri, Math.sin(a)*ri);
+  }
+  ctx.closePath();
+  ctx.fillStyle='#ff8800'; ctx.fill();
+  ctx.fillStyle='#ffdd00';
+  ctx.beginPath();
+  for(let i=0;i<14;i++){
+    const a=i*Math.PI/7, ri=i%2===0?(sz+10):(sz*0.38);
+    i===0 ? ctx.moveTo(Math.cos(a)*ri, Math.sin(a)*ri)
+          : ctx.lineTo(Math.cos(a)*ri, Math.sin(a)*ri);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Texte "BONUS BITE !!!"
+  ctx.font=`900 ${sz}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.lineWidth=6; ctx.strokeStyle='#000';
+  ctx.strokeText('BONUS',0,-sz*0.52);
+  ctx.strokeText('BITE !!!',0, sz*0.1);
+  // Dégradé chaud
+  const grd=ctx.createLinearGradient(0,-sz,0,sz);
+  grd.addColorStop(0,'#ff4444'); grd.addColorStop(0.5,'#ff0066'); grd.addColorStop(1,'#ff2200');
+  ctx.fillStyle=grd;
+  ctx.fillText('BONUS',0,-sz*0.52);
+  ctx.fillText('BITE !!!',0, sz*0.1);
+
+  // Sous-titre "+2000 PTS"
+  ctx.font=`bold ${~~(sz*0.3)}px monospace`;
+  ctx.strokeStyle='#000'; ctx.lineWidth=3;
+  ctx.strokeText('+2000 PTS',0, sz*0.72);
+  ctx.fillStyle='#ffffff';
+  ctx.fillText('+2000 PTS',0, sz*0.72);
+
+  ctx.restore();
 }
 function drawParticles(){
   for(const p of PTPOOL){
@@ -4577,9 +4643,9 @@ function drawBG_Classroom(){
     ctx.globalAlpha=alpha;
     ctx.strokeStyle='#ffffff'; ctx.lineWidth=4;
     ctx.shadowColor='#ffffaa'; ctx.shadowBlur=10;
-    // Position centrée sur le tableau (légèrement à droite du centre)
-    const bx=~~(W*0.55), by=~~(H*0.10);
-    const scale=2.2; // taille × 2.2 par rapport à avant
+    // Position : côté gauche du tableau
+    const bx=~~(W*0.18), by=~~(H*0.08);
+    const scale=1.5; // taille compacte
     // Révélation progressive par étapes
     // Étape 1 : corps (cylindre = rect arrondi)
     if(prog>0.0){
@@ -5608,6 +5674,8 @@ function update(dt){
       }
       // Décrémente le dessin de craie
       if(_chalkDrawing&&_chalkDrawing.timer>0) _chalkDrawing.timer-=dt;
+      // Décrémente le flash BONUS BITE
+      if(_biteBonus&&_biteBonus.timer>0) _biteBonus.timer-=dt;
     } else if(G.level===3){ // cantine
       updateBaguetteItems(dt);
       updateCopines(dt);
@@ -5839,6 +5907,7 @@ function render(){
       drawParticles();
       drawHUD();
       drawKillFlash();
+      drawBiteBonus();
       drawIntoxOverlay();
       if(G.state===ST.PAUSE) drawPause();
       break;
