@@ -476,7 +476,10 @@ const EDEFS={
   MBAT:{name:'Mme Bûche',  w:36,h:30, hp:1, spd:1.8, col:'#7030a0',  phrase:'CIRCULEZ !!!',         sight:200, flying:true},
   PION:{name:'M. Propre',  w:40,h:58, hp:3, spd:1.3, col:'#e0e8ff',  phrase:'ON NE TRAÎNE PAS !',   sight:200, mop:true},
   DAME: {name:'Dame Micheline', w:32,h:50, hp:3, spd:0.7, col:'#d060a8', phrase:'FINISSEZ VOS ASSIETTES !', sight:280, shooter:true},
-  INTELLO:{name:'Intello', w:28,h:48, hp:2, spd:0.8, col:'#4466ff',  phrase:'MADAME MADAME !',      sight:120},
+  INTELLO:    {name:'Intello',        w:28,h:48, hp:2, spd:0.8, col:'#4466ff',  phrase:'MADAME MADAME !', sight:130},
+  INTELLO_S:  {name:'Intello tireur', w:28,h:48, hp:2, spd:0.7, col:'#4466ff',  phrase:'MADAME IL TRICHE !', sight:200, shooter:true},
+  INTELLO_J:  {name:'Intello sauteur',w:28,h:48, hp:2, spd:1.1, col:'#6688ff',  phrase:'MADAME MADAME !', sight:220, jumper:true},
+  INTELLO_GROS:{name:'Intello obèse', w:40,h:56, hp:4, spd:0.45,col:'#3355cc',  phrase:'MADAME MADAME !', sight:110},
   PHYSIK: {name:'M. Physik',w:36,h:52,hp:3, spd:0.7, col:'#e8f0ff',  phrase:'VOUS ÊTES TOUS NULS !',sight:220, shooter:true},
   MALADE:{name:'Gamin malade',  w:24,h:40, hp:1, spd:0,   col:'#90c040', phrase:'...',                      sight:0},
   BAGARR:{name:'Gamin bagarreur',w:26,h:44,hp:2, spd:1.5, col:'#d09020', phrase:'MANGE ÇA !',               sight:220},
@@ -815,29 +818,57 @@ const PHYSIK_PHRASES = [
   'MON DIEU QUE VOUS ÊTES BÊTES !',
   "J'AI HONTE D'ÊTRE VOTRE PROF !",
   'PITIÉ, RÉPONDEZ CORRECTEMENT !',
+  "JE VAIS ME METTRE EN ARRÊT MALADIE SI ÇA CONTINUE !",
+  "JAMAIS VU UN NIVEAU PAREIL DE MA CARRIÈRE !",
 ];
 const INTELLO_PHRASES = [
   'MADAME MADAME !','Monsieur Monsieur !',
   "J'ai la bonne réponse !",'C\'est pas juste !',
   'Je vais le dire !','MADAME, IL TRICHE !!!',
 ];
+const N1_EXIT_X = 2150; // X de la porte de sortie N1
 const LEVEL_ENEMIES_CLASSROOM = [
-  {type:'INTELLO', x:350,  pl:280,  pr:500},
-  {type:'INTELLO', x:600,  pl:500,  pr:750},
-  {type:'INTELLO', x:900,  pl:800,  pr:1050},
-  {type:'INTELLO', x:1150, pl:1050, pr:1300},
-  {type:'INTELLO', x:1450, pl:1350, pr:1600},
-  {type:'INTELLO', x:1700, pl:1600, pr:1850},
-  {type:'PHYSIK',  x:500,  pl:400,  pr:650},
-  {type:'PHYSIK',  x:950,  pl:850,  pr:1100},
-  {type:'PHYSIK',  x:1400, pl:1300, pr:1500},
-  {type:'FOUI',    x:2000, pl:1900, pr:2100, boss:true},
+  // Intellos normaux (melee)
+  {type:'INTELLO',     x:350,  pl:280,  pr:500},
+  {type:'INTELLO',     x:700,  pl:600,  pr:850},
+  {type:'INTELLO',     x:1050, pl:950,  pr:1150},
+  {type:'INTELLO',     x:1550, pl:1450, pr:1700},
+  // Intellos obèses (lents, résistants)
+  {type:'INTELLO_GROS',x:450,  pl:380,  pr:600},
+  {type:'INTELLO_GROS',x:1200, pl:1100, pr:1400},
+  // Intellos tireurs (lancent des boulettes)
+  {type:'INTELLO_S',   x:550,  pl:480,  pr:700},
+  {type:'INTELLO_S',   x:900,  pl:800,  pr:1050},
+  {type:'INTELLO_S',   x:1300, pl:1200, pr:1480},
+  {type:'INTELLO_S',   x:1650, pl:1550, pr:1800},
+  // Intellos sauteurs (pourchassent sur les plateformes)
+  {type:'INTELLO_J',   x:800,  pl:700,  pr:950},
+  {type:'INTELLO_J',   x:1100, pl:1000, pr:1250},
+  {type:'INTELLO_J',   x:1750, pl:1650, pr:1900},
+  // Profs de physique (nuages de formule)
+  {type:'PHYSIK',      x:600,  pl:480,  pr:750},
+  {type:'PHYSIK',      x:1050, pl:900,  pr:1200},
+  {type:'PHYSIK',      x:1500, pl:1380, pr:1650},
+  // Boss Foui — avant la porte
+  {type:'FOUI',        x:2000, pl:1900, pr:2100, boss:true},
 ];
 const BOULETTES_CLASSROOM = [
-  {x:200},{x:280},{x:380},{x:460},{x:550},{x:640},
-  {x:720},{x:820},{x:900},{x:980},{x:1060},{x:1150},
-  {x:1240},{x:1320},{x:1400},{x:1480},{x:1560},{x:1650},
-  {x:1730},{x:1810},{x:1890},{x:1950},
+  // Sol — boulettes de base, très fréquentes
+  {x:160},{x:230},{x:300},{x:370},{x:440},{x:510},{x:580},
+  {x:650},{x:720},{x:800},{x:870},{x:940},{x:1010},{x:1080},
+  {x:1150},{x:1220},{x:1290},{x:1360},{x:1430},{x:1500},{x:1570},
+  {x:1640},{x:1710},{x:1780},{x:1850},{x:1920},{x:1990},{x:2050},
+  // Sur pupitres 1er rang (y=GND-80-10)
+  {x:200, y:GND-90},{x:390, y:GND-90},{x:570, y:GND-90},
+  {x:750, y:GND-90},{x:930, y:GND-90},{x:1110,y:GND-90},
+  {x:1290,y:GND-90},{x:1470,y:GND-90},{x:1650,y:GND-90},
+  // Sur pupitres 2e rang (y=GND-160-10)
+  {x:290, y:GND-170},{x:490, y:GND-170},{x:690, y:GND-170},
+  {x:890, y:GND-170},{x:1090,y:GND-170},{x:1290,y:GND-170},
+  {x:1490,y:GND-170},{x:1690,y:GND-170},
+  // Sur pupitres 3e rang (y=GND-240-10)
+  {x:400, y:GND-250},{x:655, y:GND-250},{x:905, y:GND-250},
+  {x:1155,y:GND-250},{x:1405,y:GND-250},{x:1655,y:GND-250},
 ];
 const DESKS_CLASSROOM = [
   {x:150,  y:GND-80,  w:120, h:14},
@@ -1283,7 +1314,9 @@ function drawEnemy(e){
       case 'DAME': _drawDame(0,sy,e.frame,e.facing);  break;
       case 'MALADE': _drawMalade(0,sy,e.frame);       break;
       case 'BAGARR': _drawBagarr(0,sy,e.frame,e.facing); break;
-      case 'INTELLO': _drawIntelloEnemy(0,sy,e.frame,e); break;
+      case 'INTELLO': case 'INTELLO_S': case 'INTELLO_J':
+        _drawIntelloEnemy(0,sy,e.frame,e); break;
+      case 'INTELLO_GROS': _drawIntelloGros(0,sy,e.frame,e); break;
       case 'PHYSIK':  _drawPhysik(0,sy,e.frame,e);       break;
     }
   } else {
@@ -1298,7 +1331,9 @@ function drawEnemy(e){
       case 'DAME': _drawDame(sx,sy,e.frame,e.facing);  break;
       case 'MALADE': _drawMalade(sx,sy,e.frame);       break;
       case 'BAGARR': _drawBagarr(sx,sy,e.frame,e.facing); break;
-      case 'INTELLO': _drawIntelloEnemy(sx,sy,e.frame,e); break;
+      case 'INTELLO': case 'INTELLO_S': case 'INTELLO_J':
+        _drawIntelloEnemy(sx,sy,e.frame,e); break;
+      case 'INTELLO_GROS': _drawIntelloGros(sx,sy,e.frame,e); break;
       case 'PHYSIK':  _drawPhysik(sx,sy,e.frame,e);       break;
     }
   }
@@ -1535,39 +1570,83 @@ function _drawBagarr(x,y,f,facing){
 }
 
 function _drawIntelloEnemy(x,y,f,e){
-  // Petit intello : pull blanc, lunettes, main levée
+  // Intello normal : pull blanc, GROSSES lunettes, main levée
   const lo=f%2?2:-2;
   const alert=(e&&e.state==='chase');
+  const isJumper=(e&&e.def&&e.def.jumper);
   // Sac à dos
   r(x-3,y+14,6,18,'#224488'); r(x-2,y+16,5,4,'#335599');
   // Corps pull blanc/bleu
-  r(x+2,y+16,22,18,'#eeeeff'); r(x+4,y+16,18,4,'#4466bb'); // col
+  r(x+2,y+16,22,18,isJumper?'#aaccff':'#eeeeff');
+  r(x+4,y+16,18,4,isJumper?'#2244cc':'#4466bb'); // col
   // Bras (gauche bas, droite levée si alerte)
-  r(x-2,y+18+lo,6,12,'#eeeeff'); // bras G
+  r(x-2,y+18+lo,6,12,isJumper?'#aaccff':'#eeeeff');
   if(alert){
-    r(x+22,y+10,6,18,'#eeeeff'); // bras D levé
-    r(x+22,y+8,6,6,C.SKIN); // main levée
+    r(x+22,y+10,6,18,isJumper?'#aaccff':'#eeeeff');
+    r(x+22,y+8,6,6,C.SKIN);
   } else {
-    r(x+22,y+18-lo,6,12,'#eeeeff'); // bras D
+    r(x+22,y+18-lo,6,12,isJumper?'#aaccff':'#eeeeff');
     r(x+22,y+28-lo,6,4,C.SKIN);
   }
-  r(x-2,y+28+lo,6,4,C.SKIN); // main G
-  // Jambes
-  r(x+4,y+34,8,14+lo,'#336699'); r(x+14,y+34,8,14-lo,'#336699');
+  r(x-2,y+28+lo,6,4,C.SKIN);
+  // Jambes (sauteur = rayures)
+  const jc=isJumper?'#2244aa':'#336699';
+  r(x+4,y+34,8,14+lo,jc); r(x+14,y+34,8,14-lo,jc);
   r(x+2,y+46+lo,10,4,C.BLACK); r(x+14,y+46-lo,10,4,C.BLACK);
   // Tête
   r(x+4,y+2,20,14,C.SKIN);
-  // Cheveux bien coiffés
+  // Cheveux
   r(x+3,y,22,5,'#1a1a3a'); r(x+3,y+2,3,8,'#1a1a3a');
-  // Lunettes épaisses (trait distinctif)
-  r(x+2,y+5,9,7,'#111'); r(x+15,y+5,9,7,'#111');
-  r(x+3,y+6,7,5,alert?'#ff8800':'#aaddff');
-  r(x+16,y+6,7,5,alert?'#ff8800':'#aaddff');
-  r(x+4,y+7,2,2,alert?'#ffcc44':'#ffffff');
-  r(x+17,y+7,2,2,alert?'#ffcc44':'#ffffff');
-  r(x+11,y+8,4,2,'#111'); // pont
+  // GROSSES lunettes (12px de large, épaisseur 3)
+  r(x+1,y+4,12,9,'#111'); r(x+15,y+4,12,9,'#111'); // monture épaisse
+  r(x+2,y+5,10,7,alert?'#ff8800':'#aaddff');         // verre G
+  r(x+16,y+5,10,7,alert?'#ff8800':'#aaddff');         // verre D
+  r(x+3,y+6,3,3,alert?'#ffcc44':'#ffffff');           // reflet G
+  r(x+17,y+6,3,3,alert?'#ffcc44':'#ffffff');          // reflet D
+  r(x+13,y+7,2,3,'#111');                             // pont
+  // Tireur = étoiles sur pull
+  if(e&&e.def&&e.def.shooter){
+    ctx.font='7px monospace'; ctx.fillStyle='#ffcc00'; ctx.textAlign='center';
+    ctx.fillText('★',x+13,y+28);
+  }
   // Bouche
   r(x+7,y+13,10,2,alert?C.RED:C.DSKIN);
+}
+
+function _drawIntelloGros(x,y,f,e){
+  // Intello obèse : plus large, bedaine, mégagrosses lunettes
+  const lo=f%2?2:-2;
+  const alert=(e&&e.state==='chase');
+  // Sac à dos (gros)
+  r(x-4,y+14,8,22,'#223366'); r(x-3,y+16,6,5,'#334477');
+  // Corps énorme
+  r(x,y+14,38,26,'#ddeeff'); // ventre
+  r(x+2,y+14,34,6,'#3355aa'); // col
+  r(x+12,y+22,14,18,'#ddeeff'); // bedaine saillante
+  r(x+13,y+18,12,4,'#3355aa'); // bretelles
+  // Bras courts et gros
+  r(x-5,y+18+lo,8,16,'#ddeeff'); r(x+36,y+18-lo,8,16,'#ddeeff');
+  r(x-5,y+32+lo,8,5,C.SKIN); r(x+36,y+32-lo,8,5,C.SKIN);
+  // Jambes courtes et grosses
+  r(x+2,y+40,14,16+lo,'#223366'); r(x+22,y+40,14,16-lo,'#223366');
+  r(x+0,y+54+lo,17,4,C.BLACK); r(x+21,y+54-lo,17,4,C.BLACK);
+  // Tête ronde et grosse
+  r(x+4,y,30,18,C.SKIN);
+  // Joues roses (bedaine-face)
+  r(x+4,y+9,6,4,'#f0a0a0'); r(x+28,y+9,6,4,'#f0a0a0');
+  // Cheveux (peu)
+  r(x+5,y-2,28,6,'#1a1a3a'); r(x+5,y+0,4,8,'#1a1a3a');
+  // MEGAGROSSES lunettes (14px de large, épaisses)
+  r(x+2,y+3,14,11,'#000'); r(x+20,y+3,14,11,'#000');
+  r(x+3,y+4,12,9,alert?'#ff6600':'#88ccff');
+  r(x+21,y+4,12,9,alert?'#ff6600':'#88ccff');
+  r(x+4,y+5,3,3,alert?'#ffaa22':'#ffffff');
+  r(x+22,y+5,3,3,alert?'#ffaa22':'#ffffff');
+  r(x+16,y+6,4,4,'#000'); // pont épais
+  // Bouche
+  r(x+10,y+15,14,3,alert?C.RED:'#cc8888');
+  // Sueur (effort de marcher)
+  if(alert){ ctx.font='8px monospace'; ctx.fillStyle='#88ccff'; ctx.textAlign='center'; ctx.fillText('💦',x+38,y+4); }
 }
 
 function _drawPhysik(x,y,f,e){
@@ -2415,14 +2494,53 @@ function updateEnemies(dt){
       // MALADE ne se déplace pas
       e.vx=0;
     }
-    // INTELLO — dit une phrase quand il voit Kevin, va vers lui
-    if(e.type==='INTELLO'&&e.state==='chase'){
-      if(e.intelloPhraseT===undefined) e.intelloPhraseT=0;
-      e.intelloPhraseT-=dt;
-      if(e.intelloPhraseT<=0){
-        e.intelloPhraseT=3+Math.random()*2;
-        const ph=INTELLO_PHRASES[~~(Math.random()*INTELLO_PHRASES.length)];
-        spawnFT(ph, e.x+e.w/2, e.y-20, '#ffee00', false);
+    // INTELLO (tous types) — phrases + saut + tir
+    if(e.type==='INTELLO'||e.type==='INTELLO_S'||e.type==='INTELLO_J'||e.type==='INTELLO_GROS'){
+      if(e.state==='chase'){
+        // Phrase
+        if(e.intelloPhraseT===undefined) e.intelloPhraseT=0;
+        e.intelloPhraseT-=dt;
+        if(e.intelloPhraseT<=0){
+          e.intelloPhraseT=2.5+Math.random()*2;
+          const ph=INTELLO_PHRASES[~~(Math.random()*INTELLO_PHRASES.length)];
+          spawnFT(ph, e.x+e.w/2, e.y-22, '#ffee00', false);
+        }
+      }
+      // Gravité sur les sauteurs (et obèses aussi)
+      if(e.def.jumper||e.type==='INTELLO_GROS'){
+        if(e.vy===undefined){ e.vy=0; e.onGnd=true; }
+        e.vy+=0.4*dt*60; // gravité légère ennemi
+        e.y+=e.vy*dt*60;
+        // Collision sol
+        if(e.y>=GND-e.h){ e.y=GND-e.h; e.vy=0; e.onGnd=true; }
+        // Collision plateformes (pupitres)
+        for(const p of currentPlats){
+          if(p.ground) continue;
+          const eL=e.x+4, eR=e.x+e.w-4, eFeet=e.y+e.h;
+          if(eR>p.x&&eL<p.x+p.w&&e.vy>=0&&eFeet>=p.y&&eFeet<=p.y+18){
+            e.y=p.y-e.h; e.vy=0; e.onGnd=true; break;
+          }
+        }
+      }
+      // INTELLO_J : saute vers Kevin s'il est en hauteur
+      if(e.type==='INTELLO_J'&&e.state==='chase'){
+        if(e.vy===undefined){ e.vy=0; e.onGnd=true; }
+        if(e.onGnd&&KV.y<e.y-30&&e.vy===0){
+          e.vy=-10; e.onGnd=false; // saut vers Kevin
+        }
+      }
+      // INTELLO_S : lance boulette de papier
+      if(e.type==='INTELLO_S'){
+        if(e.projTimer===undefined) e.projTimer=1+Math.random()*2;
+        if(e.state==='chase'||Math.abs(KV.x-e.x)<200){
+          e.projTimer-=dt;
+          if(e.projTimer<=0){
+            e.projTimer=2.5+Math.random()*1.5;
+            const dir=KV.x<e.x?-1:1;
+            projectiles.push({x:e.x+e.w/2, y:e.y+14, vx:dir*4.5, vy:-1, life:100, boulettePaper:true, fromEnemy:true});
+            spawnFT('📄', e.x+e.w/2, e.y-10, '#ffcc00');
+          }
+        }
       }
     }
     // PHYSIK — lance un nuage de formule
@@ -2502,15 +2620,15 @@ function updateEnemies(dt){
     // bookFall : tombe verticalement, disparaît au sol
     if(p.bookFall && p.y>=GND){ projectiles.splice(i,1); continue; }
 
-    // Boulette papier niveau 1 — hit enemy
-    if(p.boulettePaper){
+    // Boulette papier — hit enemy (sauf si tirée par un ennemi)
+    if(p.boulettePaper && !p.fromEnemy){
       let hitE=false;
       for(const e of enemies){
         if(e.state==='dead'||!e.on) continue;
         if(p.x>e.x+2&&p.x<e.x+e.w-2&&p.y>e.y+2&&p.y<e.y+e.h-2){
           hitEnemy(e);
           // Intello mort lâche boulettes
-          if(e.hp<=0&&e.type==='INTELLO'){
+          if(e.hp<=0&&(e.type==='INTELLO'||e.type==='INTELLO_S'||e.type==='INTELLO_J'||e.type==='INTELLO_GROS')){
             bouletteItems.push({on:true,x:e.x,y:GND-14,glowT:0,count:3,classroomDrop:true});
           }
           projectiles.splice(i,1); hitE=true; break;
@@ -2538,6 +2656,13 @@ function updateEnemies(dt){
           hurtKevin(p.x, 'FOUI');
           spawnFT('UN LIVRE SUR LA TETE !',KV.x+16,KV.y-50,C.BROWN,true);
         }
+        continue;
+      }
+      // Boulette ENNEMIE touche Kevin
+      if(p.boulettePaper&&p.fromEnemy&&p.x>kb.x&&p.x<kb.x+kb.w&&p.y>kb.y&&p.y<kb.y+kb.h){
+        projectiles.splice(i,1);
+        hurtKevin(p.x,'INTELLO_S');
+        spawnFT('📄 DANS LA TÊTE !',KV.x+16,KV.y-44,'#ffcc00',true);
         continue;
       }
       if(p.x>kb.x&&p.x<kb.x+kb.w&&p.y>kb.y&&p.y<kb.y+kb.h){
@@ -3825,10 +3950,11 @@ function drawIntro(){
     {t:'Kevin RENTRE CHEZ LUI.',               c:C.YELLOW, y:176},
     {t:'',c:C.WHITE,y:191},
     {t:'── NIVEAU 1 : La Salle de Classe ──',      c:C.ORANGE, y:205},
-    {t:'Lance des boulettes sur les intellos.',     c:C.WHITE,  y:222},
-    {t:'Évite les nuages de formules du prof.',     c:'#88ff44', y:237},
-    {t:'BAT le boss de physique pour t\'évader !', c:C.RED,    y:252},
-    {t:'Ramasse des boulettes au sol (x3).',        c:C.YELLOW, y:266},
+    {t:'Lance des boulettes sur les intellos !',    c:C.WHITE,  y:220},
+    {t:'Évite les nuages de formules du prof.',     c:'#88ff44', y:234},
+    {t:'Méfie-toi des intellos sauteurs et tireurs !', c:'#ffaa44', y:248},
+    {t:'Atteins la PORTE VERTE pour t\'évader !',  c:C.RED,    y:262},
+    {t:'Boulettes partout — au sol et sur les pupitres.', c:C.YELLOW, y:276},
   ];
   for(const l of sub){
     ctx.font='bold 11px monospace'; ctx.textAlign='center';
@@ -4251,6 +4377,36 @@ function drawBG_Classroom(){
     r(tx,GND,1,H-GND,'rgba(0,0,0,0.1)');
   }
   r(0,GND-2,W,4,'#7a4810');
+
+  // ── PORTE DE SORTIE N1 ──
+  const doorX=~~wx(N1_EXIT_X);
+  if(doorX>-80&&doorX<W+20){
+    const dH=110, dW=54, dY=GND-dH;
+    // Cadre mural
+    r(doorX-6,dY-6,dW+12,dH+6,'#6a3a10');
+    r(doorX-4,dY-4,dW+8,dH+4,'#3a8040');
+    // Panneau de porte
+    r(doorX,dY,dW,dH,'#228830');
+    r(doorX+2,dY+2,dW-4,dH-2,'#33aa44');
+    // Vitre en haut
+    r(doorX+8,dY+8,dW-16,28,'#aaddff');
+    r(doorX+9,dY+9,dW-18,26,'#c8eeff');
+    // Poignée
+    r(doorX+dW-14,dY+dH/2-4,10,8,'#f0c020');
+    r(doorX+dW-16,dY+dH/2,12,4,'#f0c020');
+    // Flèche "SORTIE" clignotante
+    const blink=~~(Date.now()/400)%2===0;
+    ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillStyle=blink?'#ffff00':'#aaaa00';
+    ctx.fillText('SORTIE',doorX+dW/2,dY-10);
+    ctx.font='16px monospace';
+    ctx.fillStyle=blink?'#00ff44':'#00aa22';
+    ctx.fillText('⬆',doorX+dW/2,dY+55);
+    // Halo vert
+    ctx.shadowColor='#00ff44'; ctx.shadowBlur=blink?18:8;
+    r(doorX-2,dY-2,dW+4,4,'#00ff44');
+    ctx.shadowBlur=0;
+  }
 }
 
 // ═══ DÉCORS ═══
@@ -5084,8 +5240,8 @@ function update(dt){
     G.score = G.scoreBonus + G.killScore + ~~(G.maxX/8);
     // Condition de victoire
     if(G.level===1){
-      // Tous les ennemis morts → victoire N1
-      if(enemies.every(e=>!e.on||e.state==='dead')){
+      // Atteindre la porte de sortie → victoire N1
+      if(KV.x >= N1_EXIT_X && KV.onGnd){
         winGame();
       }
     } else {
@@ -5285,7 +5441,7 @@ function startClassroom(){
   });
   // Boulettes pickup
   bouletteItems = BOULETTES_CLASSROOM.map(b=>({
-    on:true, x:b.x, y:GND-14, glowT:0, count:3,
+    on:true, x:b.x, y:(b.y!=null?b.y:GND-14), glowT:0, count:3,
   }));
   // Clear tout le reste
   projectiles=[]; copines=[]; baguetteItems=[]; kvBoulettes=[];
